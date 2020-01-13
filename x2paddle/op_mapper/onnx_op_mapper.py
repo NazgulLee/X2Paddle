@@ -105,7 +105,6 @@ class ONNXOpMapper(OpMapper):
             op = node.layer_type
             if not hasattr(self, op) and \
                 op not in default_op_mapping and \
-                op not in custom_layers and \
                 op not in self.elementwise_ops:
                 unsupported_ops.add(op)
         if len(unsupported_ops) == 0:
@@ -585,6 +584,20 @@ class ONNXOpMapper(OpMapper):
                                       inputs=None,
                                       output=node,
                                       param_attr=attr)
+                                      
+    def InstanceNormalization(self, node):
+        val_input = self.graph.get_input_node(node, idx=0, copy=True)
+        val_param = self.graph.get_input_node(node, idx=1, copy=True)
+        val_bias = self.graph.get_input_node(node, idx=2, copy=True)
+        attr = {
+            'param_attr': string(val_param.layer_name),
+            'bias_attr': string(val_bias.layer_name),
+            "name": string(node.layer_name)
+        }
+        node.fluid_code.add_layer("instance_norm",
+                                  inputs=val_input,
+                                  param_attr=attr,
+                                  output=node)
 
     def Resize(self, node):
         self._interpolate(node)
